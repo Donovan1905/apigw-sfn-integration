@@ -1,0 +1,49 @@
+{
+   "StartAt":"CheckInstanceStatus",
+   "States":{
+      "CheckInstanceStatus":{
+         "Type":"Task",
+         "Resource":"arn:aws:states:::aws-sdk:ec2:describeInstanceStatus",
+         "Parameters":{
+            "InstanceIds.$": "States.Array($.instance_id)"
+         },
+         "ResultPath":"$.InstanceStatus",
+         "Next":"InstanceStatusDecision"
+      },
+      "InstanceStatusDecision":{
+         "Type":"Choice",
+         "Choices":[
+            {
+               "Variable":"$.InstanceStatus.InstanceStatuses[0]",
+               "IsPresent": false,
+               "Next":"StartInstance"
+            },
+            {
+               "Variable":"$.InstanceStatus.InstanceStatuses[0].InstanceState.Name",
+               "StringEquals":"running",
+               "Next":"StopInstance"
+            }
+         ],
+         "Default":"EndState"
+      },
+      "StartInstance":{
+         "Type":"Task",
+         "Resource":"arn:aws:states:::aws-sdk:ec2:startInstances",
+         "Parameters":{
+            "InstanceIds.$": "States.Array($.instance_id)"
+         },
+         "End":true
+      },
+      "StopInstance":{
+         "Type":"Task",
+         "Resource":"arn:aws:states:::aws-sdk:ec2:stopInstances",
+         "Parameters":{
+            "InstanceIds.$": "States.Array($.instance_id)"
+         },
+         "End":true
+      },
+      "EndState":{
+         "Type":"Succeed"
+      }
+   }
+}
